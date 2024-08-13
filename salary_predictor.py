@@ -4,10 +4,15 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import streamlit as st
+import numpy as np
 
 # Load datasets
 soccer_data = pd.read_csv('SalaryPrediction.csv')
 nba_data = pd.read_csv('nba_2022-23_all_stats_with_salary.csv')
+
+
+predicted_wage = rf.predict(input_data)
+predicted_wage = np.maximum(predicted_wage, 0)  # Set any negative predictions to 0
 
 # Clean the datasets by removing rows with missing values
 soccer_data_cleaned = soccer_data.dropna()
