@@ -1,29 +1,21 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 import streamlit as st
 import numpy as np
 
-# Load datasets
 soccer_data = pd.read_csv('SalaryPrediction.csv')
 nba_data = pd.read_csv('nba_2022-23_all_stats_with_salary.csv')
 
-
-predicted_wage = rf.predict(input_data)
-predicted_wage = np.maximum(predicted_wage, 0)  # Set any negative predictions to 0
-
-# Clean the datasets by removing rows with missing values
 soccer_data_cleaned = soccer_data.dropna()
 nba_data_cleaned = nba_data.dropna()
 nba_data_cleaned = nba_data[nba_data['Team'].apply(lambda x: len(str(x)) <= 3)]
 
-# Remove commas and convert Wage/Salary to float
 soccer_data_cleaned['Wage'] = soccer_data_cleaned['Wage'].replace({',': ''}, regex=True).astype(float)
 nba_data_cleaned['Salary'] = nba_data_cleaned['Salary'].replace({',': ''}, regex=True).astype(float)
 
-# Preprocess Soccer Data
 soccer_label_encoders = {}
 for column in ['Club', 'League', 'Nation', 'Position']:
     le = LabelEncoder()
@@ -38,10 +30,9 @@ X_soccer[['Age', 'Apps', 'Caps']] = soccer_scaler.fit_transform(X_soccer[['Age',
 
 X_soccer_train, X_soccer_test, y_soccer_train, y_soccer_test = train_test_split(X_soccer, y_soccer, test_size=0.2, random_state=42)
 
-soccer_model = LinearRegression()
-soccer_model.fit(X_soccer_train, y_soccer_train)
+rf_soccer = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_soccer.fit(X_soccer_train, y_soccer_train)
 
-# Preprocess NBA Data
 nba_data_cleaned = nba_data_cleaned.drop(columns=[
     'Unnamed: 0', 'FGA', 'FG%', '3P', '3PA', '3P%', '2P', '2PA', '2P%', 'eFG%', 
     'FT', 'FTA', 'FT%', 'ORB', 'DRB', 'TRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 
@@ -64,17 +55,14 @@ X_nba[['Age', 'GP', 'GS', 'MP']] = nba_scaler.fit_transform(X_nba[['Age', 'GP', 
 
 X_nba_train, X_nba_test, y_nba_train, y_nba_test = train_test_split(X_nba, y_nba, test_size=0.2, random_state=42)
 
-nba_model = LinearRegression()
-nba_model.fit(X_nba_train, y_nba_train)
+rf_nba = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_nba.fit(X_nba_train, y_nba_train)
 
-# Streamlit App
 st.title("Wage Predictor")
 
-# Initialize session state to track which predictor is selected
 if 'prediction_type' not in st.session_state:
     st.session_state.prediction_type = 'Soccer Wage Predictor'
 
-# Create buttons for selection
 col1, col2 = st.columns(2)
 with col1:
     if st.button('Soccer Wage Predictor'):
@@ -83,7 +71,6 @@ with col2:
     if st.button('NBA Wage Predictor'):
         st.session_state.prediction_type = 'NBA Wage Predictor'
 
-# Display the appropriate prediction interface
 if st.session_state.prediction_type == 'Soccer Wage Predictor':
     st.subheader("Soccer Wage Prediction")
     selected_league = st.selectbox('Select League', soccer_label_encoders['League'].classes_)
@@ -108,9 +95,11 @@ if st.session_state.prediction_type == 'Soccer Wage Predictor':
     }
 
     input_soccer_df = pd.DataFrame([encoded_soccer_values])
-    input_soccer_df = input_soccer_df[X_soccer.columns]  # Reorder columns to match the training data
+    input_soccer_df = input_soccer_df[X_soccer.columns] 
     input_soccer_df[['Age', 'Apps', 'Caps']] = soccer_scaler.transform(input_soccer_df[['Age', 'Apps', 'Caps']])
-    predicted_soccer_wage = soccer_model.predict(input_soccer_df)
+    
+    predicted_soccer_wage = rf_soccer.predict(input_soccer_df)
+    predicted_soccer_wage = np.maximum(predicted_soccer_wage, 0)  
     
     st.write(f"Predicted Soccer Wage: ${predicted_soccer_wage[0]:,.2f}")
 
@@ -133,8 +122,10 @@ elif st.session_state.prediction_type == 'NBA Wage Predictor':
     }
 
     input_nba_df = pd.DataFrame([encoded_nba_values])
-    input_nba_df = input_nba_df[X_nba.columns]  # Reorder columns to match the training data
+    input_nba_df = input_nba_df[X_nba.columns] 
     input_nba_df[['Age', 'GP', 'GS', 'MP']] = nba_scaler.transform(input_nba_df[['Age', 'GP', 'GS', 'MP']])
-    predicted_nba_wage = nba_model.predict(input_nba_df)
+    
+    predicted_nba_wage = rf_nba.predict(input_nba_df)
+    predicted_nba_wage = np.maximum(predicted_nba_wage, 0)  
     
     st.write(f"Predicted NBA Wage: ${predicted_nba_wage[0]:,.2f}")
